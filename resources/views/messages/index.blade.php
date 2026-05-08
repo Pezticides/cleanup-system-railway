@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<html><head><title>Messages</title><style>body{font-family:Arial;background:#f4f7f4;margin:0}.navbar{background:#1b5e20;color:white;padding:18px 40px;display:flex;justify-content:space-between}.navbar a{color:white;text-decoration:none;margin-left:15px;font-weight:bold}.container{max-width:900px;margin:30px auto}.card{background:white;padding:18px;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.1);margin-bottom:15px}.btn{background:#2e7d32;color:white;padding:9px 12px;border-radius:6px;text-decoration:none;display:inline-block}.muted{color:#666;font-size:13px}</style></head><body>
+<div class="navbar"><h2>Messages</h2><div><a href="/">Home</a><a href="{{ route('messages.create') }}">New Message / Group</a></div></div>
+<div class="container"><a class="btn" href="{{ route('messages.create') }}">+ New Conversation</a><br><br>
+@forelse($conversations as $conversation)<div class="card"><h3><a href="{{ route('messages.show',$conversation) }}">{{ $conversation->name ?: $conversation->users->where('id','!=',auth()->id())->pluck('name')->join(', ') }}</a></h3><p class="muted">Members: {{ $conversation->users->pluck('name')->join(', ') }}</p></div>@empty<div class="card">No conversations yet.</div>@endforelse
+</div></body></html>
