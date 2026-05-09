@@ -2,7 +2,9 @@
 cmds = [
     "composer install --no-dev --optimize-autoloader",
     "npm install",
-    "npm run build"
+    "npm run build",
+    "cp .env.example .env || true",
+    "php artisan key:generate --force || true"
 ]
 
 [start]
