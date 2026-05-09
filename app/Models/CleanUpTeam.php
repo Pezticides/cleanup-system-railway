@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
+use App\Models\CleanUpReport;
 
 class CleanUpTeam extends Model
 {
@@ -15,5 +17,10 @@ class CleanUpTeam extends Model
     public function reports()
     {
         return $this->hasMany(CleanUpReport::class);
+    }
+
+    public function users()
+    {
+        return $this->hasMany(User::class, 'clean_up_team_id');
     }
 }

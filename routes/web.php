@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\CleanUpReportController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
@@ -43,6 +44,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/reports', [CleanUpReportController::class, 'admin']);
     Route::patch('/admin/reports/{id}/status', [CleanUpReportController::class, 'updateStatus']);
     Route::delete('/admin/reports/{id}', [CleanUpReportController::class, 'destroy']);
+    Route::resource('/admin/teams', TeamController::class);
 });
 
 require __DIR__.'/auth.php';

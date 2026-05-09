@@ -1,84 +1,241 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Admin Dashboard</title>
-    <style>
-        body{font-family:Arial,sans-serif;background:#f4f7f4;margin:0}.navbar{background:#1b5e20;color:white;padding:18px 40px;display:flex;justify-content:space-between;align-items:center}.nav-links{display:flex;align-items:center;gap:15px}.navbar a{color:white;text-decoration:none;font-weight:bold}.logout-btn{background:#c62828;border:0;padding:8px 12px;border-radius:6px;color:white;cursor:pointer;font-weight:bold}.container{max-width:1150px;margin:30px auto;padding:20px}.success{background:#d4edda;color:#155724;padding:12px;border-radius:6px;margin-bottom:15px}.card{background:white;padding:20px;margin-bottom:18px;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.1)}.card h3{color:#1b5e20}select{padding:8px;border-radius:6px;border:1px solid #ccc;min-width:190px}button{padding:9px 12px;border:0;border-radius:6px;cursor:pointer;color:white;font-weight:bold;margin-top:8px}.update{background:#1565c0}.delete{background:#c62828}img{margin-top:10px;border-radius:8px;max-width:250px}.status{padding:5px 10px;border-radius:15px;color:white;font-size:12px}.forms{margin-top:15px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:15px;margin-bottom:20px}.mini{font-size:13px;color:#555}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.map{width:100%;height:230px;border:0;border-radius:10px;margin-top:12px}@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}.navbar{display:block}.nav-links{margin-top:10px;flex-wrap:wrap}}
-    </style>
-</head>
-<body>
-<div class="navbar">
-    <h2>Admin Dashboard</h2>
-    <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/report">Submit Report</a>
-        <a href="/admin/reports">Admin</a>
-        <a href="{{ route('messages.index') }}">Messages</a>
-        <form method="POST" action="{{ route('logout') }}" style="margin:0;">@csrf<button type="submit" class="logout-btn">Logout</button></form>
-    </div>
-</div>
-<div class="container">
-    <h1>Submitted Clean-Up Reports</h1>
-    <div class="grid">
-        <div class="card"><h3>Total</h3><p>{{ $total }}</p></div>
-        <div class="card"><h3>Pending</h3><p>{{ $pending }}</p></div>
-        <div class="card"><h3>Verified</h3><p>{{ $verified }}</p></div>
-        <div class="card"><h3>In Progress</h3><p>{{ $progress }}</p></div>
-        <div class="card"><h3>Completed</h3><p>{{ $completed }}</p></div>
-    </div>
-    @if(session('success'))<div class="success">{{ session('success') }}</div>@endif
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            Admin Dashboard
+        </h2>
+    </x-slot>
 
-    @forelse($reports as $report)
-        <div class="card">
-            <h3>{{ $report->concern_type }}</h3>
-            <p><strong>Name:</strong> {{ $report->reporter_name }}</p>
-            <p><strong>Location:</strong> {{ $report->location }}</p>
-            <p><strong>Description:</strong> {{ $report->description }}</p>
-            <span class="status" style="background:@if($report->status == 'Pending') gray @elseif($report->status == 'Verified') blue @elseif($report->status == 'In Progress') orange @elseif($report->status == 'Completed') green @else #555 @endif;">{{ $report->status }}</span>
-            <p class="mini">Submitted: {{ $report->created_at->diffForHumans() }}</p>
-            @if($report->photo)<img src="{{ asset('storage/' . $report->photo) }}" alt="Report photo">@endif
-            @if($report->hasCoordinates())
-                <iframe class="map" loading="lazy" src="https://maps.google.com/maps?q={{ $report->latitude }},{{ $report->longitude }}&z=16&output=embed"></iframe>
-                <p><a target="_blank" href="https://www.google.com/maps?q={{ $report->latitude }},{{ $report->longitude }}">Open exact pin in Google Maps</a></p>
+    <div class="py-10 bg-gray-100 min-h-screen">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+
+            @if(session('success'))
+                <div class="bg-green-100 border border-green-300 text-green-700 px-4 py-3 rounded-xl">
+                    {{ session('success') }}
+                </div>
             @endif
-            <p><strong>Current Team:</strong> {{ $report->team?->team_name ?? 'Not Assigned' }}</p>
-            <p><strong>Assigned Personnel:</strong> {{ $report->assignedUser?->name ?? 'Not Assigned' }}</p>
 
-            <div class="forms">
-                <form action="/admin/reports/{{ $report->id }}/status" method="POST">
-                    @csrf
-                    @method('PATCH')
-                    <div class="row">
-                        <select name="status">
-                            @foreach(['Pending','Verified','In Progress','Completed'] as $status)
-                                <option value="{{ $status }}" {{ $report->status == $status ? 'selected' : '' }}>{{ $status }}</option>
-                            @endforeach
-                        </select>
-                        <select name="clean_up_team_id">
-                            <option value="">No Team</option>
-                            @foreach($teams as $team)
-                                <option value="{{ $team->id }}" {{ $report->clean_up_team_id == $team->id ? 'selected' : '' }}>{{ $team->team_name }}</option>
-                            @endforeach
-                        </select>
-                        <select name="assigned_user_id">
-                            <option value="">Auto assign personnel</option>
-                            @foreach($personnels as $personnel)
-                                <option value="{{ $personnel->id }}" {{ $report->assigned_user_id == $personnel->id ? 'selected' : '' }}>
-                                    {{ $personnel->name }} ({{ $personnel->cleanUpTeam?->team_name ?? 'No team' }})
-                                </option>
-                            @endforeach
-                        </select>
-                        <button class="update" type="submit">Update Assignment</button>
-                    </div>
-                    <p class="mini">Tip: leave personnel as “Auto assign” to assign the least busy personnel.</p>
-                </form>
-                <form action="/admin/reports/{{ $report->id }}" method="POST" style="margin-top:8px;">@csrf @method('DELETE')<button class="delete" type="submit" onclick="return confirm('Delete this report?')">Delete</button></form>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-5">
+                <div class="bg-white rounded-2xl shadow-sm p-6"><p class="text-gray-500 text-sm">Total Reports</p><h2 class="text-3xl font-bold text-gray-900 mt-2">{{ $total }}</h2></div>
+                <div class="bg-white rounded-2xl shadow-sm p-6"><p class="text-gray-500 text-sm">Pending</p><h2 class="text-3xl font-bold text-gray-700 mt-2">{{ $pending }}</h2></div>
+                <div class="bg-white rounded-2xl shadow-sm p-6"><p class="text-gray-500 text-sm">Verified</p><h2 class="text-3xl font-bold text-blue-700 mt-2">{{ $verified }}</h2></div>
+                <div class="bg-white rounded-2xl shadow-sm p-6"><p class="text-gray-500 text-sm">In Progress</p><h2 class="text-3xl font-bold text-yellow-600 mt-2">{{ $progress }}</h2></div>
+                <div class="bg-white rounded-2xl shadow-sm p-6"><p class="text-gray-500 text-sm">Completed</p><h2 class="text-3xl font-bold text-green-700 mt-2">{{ $completed }}</h2></div>
             </div>
-            <p><a href="{{ route('reports.show', $report) }}">View comments / reactions</a></p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-5">Reports by Status</h2>
+                    <canvas id="statusChart"></canvas>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-5">Reports by Concern Type</h2>
+                    <canvas id="concernChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-5">Monthly Reports Analytics</h2>
+                <canvas id="monthlyChart"></canvas>
+            </div>
+
+            <div class="space-y-6">
+                @forelse($reports as $report)
+                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <div class="flex flex-col lg:flex-row gap-6">
+                            @if($report->photo)
+                                <div class="lg:w-72">
+                                    <img src="{{ asset('storage/' . $report->photo) }}" alt="Report photo" class="w-full h-72 object-cover rounded-2xl shadow-sm">
+                                </div>
+                            @endif
+
+                            <div class="flex-1">
+                                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                                    <div>
+                                        <h2 class="text-3xl font-bold text-gray-900">{{ $report->concern_type }}</h2>
+                                        <p class="text-sm text-gray-500 mt-1">Submitted {{ $report->created_at->diffForHumans() }}</p>
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="inline-flex w-fit px-4 py-1 rounded-full text-sm font-semibold
+                                            @if($report->status == 'Pending') bg-gray-200 text-gray-700
+                                            @elseif($report->status == 'Verified') bg-blue-100 text-blue-700
+                                            @elseif($report->status == 'In Progress') bg-yellow-100 text-yellow-700
+                                            @elseif($report->status == 'Completed') bg-green-100 text-green-700
+                                            @else bg-gray-100 text-gray-700
+                                            @endif">
+                                            {{ $report->status }}
+                                        </span>
+
+                                        <span class="inline-flex w-fit px-4 py-1 rounded-full text-sm font-semibold
+                                            @if($report->priority == 'Low') bg-gray-200 text-gray-700
+                                            @elseif($report->priority == 'Medium') bg-blue-100 text-blue-700
+                                            @elseif($report->priority == 'High') bg-orange-100 text-orange-700
+                                            @elseif($report->priority == 'Urgent') bg-red-100 text-red-700
+                                            @else bg-gray-100 text-gray-700
+                                            @endif">
+                                            {{ $report->priority ?? 'Medium' }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="mt-5 space-y-3 text-gray-700">
+                                    <p><strong>Reporter:</strong> {{ $report->reporter_name }}</p>
+                                    <p><strong>Location:</strong> {{ $report->location }}</p>
+                                    <p><strong>Description:</strong> {{ $report->description }}</p>
+                                    <p><strong>Priority:</strong> {{ $report->priority ?? 'Medium' }}</p>
+                                    <p><strong>Current Team:</strong> {{ $report->team?->team_name ?? 'Not Assigned' }}</p>
+                                    <p><strong>Assigned Personnel:</strong> {{ $report->assignedUser?->name ?? 'Not Assigned' }}</p>
+                                </div>
+
+                                @if($report->hasCoordinates())
+                                    <div class="mt-5">
+                                        <iframe class="w-full h-64 rounded-2xl border border-gray-200" loading="lazy" src="https://maps.google.com/maps?q={{ $report->latitude }},{{ $report->longitude }}&z=16&output=embed"></iframe>
+                                        <a target="_blank" href="https://www.google.com/maps?q={{ $report->latitude }},{{ $report->longitude }}" class="inline-block mt-3 text-green-700 font-semibold hover:underline">
+                                            Open exact pin in Google Maps
+                                        </a>
+                                    </div>
+                                @endif
+
+                                <div class="mt-8 bg-gray-50 rounded-2xl p-5 border border-gray-200">
+                                    <h3 class="text-lg font-bold text-gray-900 mb-4">Update Assignment</h3>
+
+                                    <form action="/admin/reports/{{ $report->id }}/status" method="POST" class="space-y-4">
+                                        @csrf
+                                        @method('PATCH')
+
+                                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                                                <select name="status" class="w-full rounded-xl border-gray-300 focus:border-green-500 focus:ring-green-500">
+                                                    @foreach(['Pending','Verified','In Progress','Completed'] as $status)
+                                                        <option value="{{ $status }}" {{ $report->status == $status ? 'selected' : '' }}>{{ $status }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-2">Priority</label>
+                                                <select name="priority" class="w-full rounded-xl border-gray-300 focus:border-green-500 focus:ring-green-500">
+                                                    @foreach(['Low','Medium','High','Urgent'] as $priority)
+                                                        <option value="{{ $priority }}" {{ ($report->priority ?? 'Medium') == $priority ? 'selected' : '' }}>{{ $priority }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-2">Team</label>
+                                                <select name="clean_up_team_id" class="w-full rounded-xl border-gray-300 focus:border-green-500 focus:ring-green-500">
+                                                    <option value="">No Team</option>
+                                                    @foreach($teams as $team)
+                                                        <option value="{{ $team->id }}" {{ $report->clean_up_team_id == $team->id ? 'selected' : '' }}>{{ $team->team_name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-2">Personnel</label>
+                                                <select name="assigned_user_id" class="w-full rounded-xl border-gray-300 focus:border-green-500 focus:ring-green-500">
+                                                    <option value="">Auto assign personnel</option>
+                                                    @foreach($personnels as $personnel)
+                                                        <option value="{{ $personnel->id }}" {{ $report->assigned_user_id == $personnel->id ? 'selected' : '' }}>
+                                                            {{ $personnel->name }} ({{ $personnel->cleanUpTeam?->team_name ?? 'No team' }})
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <p class="text-sm text-gray-500">Leave personnel as auto assign to assign the least busy personnel.</p>
+
+                                        <div class="flex flex-wrap gap-3 pt-2">
+                                            <button type="submit" class="px-5 py-2 bg-blue-700 text-white rounded-xl font-semibold hover:bg-blue-800">
+                                                Update Assignment
+                                            </button>
+
+                                            <a href="{{ route('reports.show', $report) }}" class="px-5 py-2 bg-green-700 text-white rounded-xl font-semibold hover:bg-green-800">
+                                                View Comments / Reactions
+                                            </a>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <form action="/admin/reports/{{ $report->id }}" method="POST" class="mt-4">
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button type="submit" onclick="return confirm('Delete this report?')" class="px-5 py-2 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700">
+                                        Delete Report
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <p class="text-gray-500">No reports found.</p>
+                    </div>
+                @endforelse
+            </div>
+
         </div>
-    @empty
-        <div class="card"><p>No reports found.</p></div>
-    @endforelse
-</div>
-</body>
-</html>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Pending', 'Verified', 'In Progress', 'Completed'],
+                datasets: [{
+                    data: [{{ $pending }}, {{ $verified }}, {{ $progress }}, {{ $completed }}],
+                    backgroundColor: ['#9ca3af', '#3b82f6', '#f59e0b', '#16a34a']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('concernChart'), {
+            type: 'bar',
+            data: {
+                labels: @json($concernLabels),
+                datasets: [{
+                    label: 'Reports',
+                    data: @json($concernData),
+                    backgroundColor: '#15803d',
+                    borderRadius: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('monthlyChart'), {
+            type: 'line',
+            data: {
+                labels: @json($monthlyLabels),
+                datasets: [{
+                    label: 'Monthly Reports',
+                    data: @json($monthlyData),
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37,99,235,0.15)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true
+            }
+        });
+    </script>
+</x-app-layout>

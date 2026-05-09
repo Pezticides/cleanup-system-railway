@@ -15,6 +15,7 @@ class CleanUpReport extends Model
         'description',
         'photo',
         'status',
+        'priority',
         'clean_up_team_id',
         'assigned_user_id',
     ];
@@ -37,6 +38,14 @@ class CleanUpReport extends Model
     public function reactions()
     {
         return $this->morphMany(Reaction::class, 'reactable');
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(
+            ReportActivity::class,
+            'clean_up_report_id'
+        )->latest();
     }
 
     public function hasCoordinates()
