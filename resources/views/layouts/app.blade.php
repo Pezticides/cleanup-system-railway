@@ -19,8 +19,8 @@
         rel="stylesheet"
     />
 
-    {{-- Vite --}}
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Styles & Scripts --}}
+    <x-vite-assets />
 
 </head>
 
